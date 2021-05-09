@@ -1,7 +1,9 @@
 use ansi_term::Colour::Red;
 use std::{fmt, io};
 use ansi_term::Colour::Green;
-use crate::Color::NoColor;
+use rand;
+use rand::{Rng};
+use rand::distributions::{ Distribution, Standard};
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -11,20 +13,11 @@ enum Color {
     Orange,
     Yellow,
     Green,
-    Blue,
     Indigo,
     Purple,
     Black,
     White,
     NoColor
-}
-
-struct ColorDisplay{
-    color : String,
-    text: String
-}
-enum CustomError {
-    ColorNotInEnum,
 }
 
 impl fmt::Display for Color {
@@ -33,10 +26,31 @@ impl fmt::Display for Color {
     }
 }
 
+impl Distribution<Color> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Color {
+        match rng.gen_range(0..=7) {
+            0=>Color::Red,
+            1=>Color::Orange ,
+            2=>Color::Yellow,
+            3=>Color::Black,
+            4=>Color::White,
+            5=>Color::Green,
+            6=>Color::Purple,
+            _=>Color::Indigo
+        }
+    }
+}
+
+fn generate_secret()->Vec<Color>{
+    let v :Vec<Color>=   (0..4).map(|_| rand::random()).collect();
+    return v;
+}
 fn main() {
     println!("Guess the color!");
-    let secret_color = vec![Color::Red,Color::Orange,Color::Yellow,Color::White,Color::NoColor];
-    println!("{:?}",fancy_print(&secret_color));
+
+    let secret_color=generate_secret();
+
+   // println!("{:?}", fancy_print_guess(&secret_color));
     let mut number_of_guess =0;
     loop{
         println!("Please input your guess. round {}",number_of_guess);
@@ -46,11 +60,9 @@ fn main() {
             .expect("Failed to read line");
 
         let colors =str_to_vec_colors(guess);
-        print!("{}",invalid_format(&*colors));
-        if !invalid_format(&*colors) {
-            println!("je suis la ");
+        if !invalid_len(&secret_color,&*colors) {
             number_of_guess+=1;
-            println!("{:?}",fancy_print(&colors));
+            println!("{:?}", fancy_print_guess(&colors));
             println!("{}",
                      Green.paint(
                          format!("{} {}","Number of well placed",
@@ -65,15 +77,11 @@ fn main() {
                 break;
             }
 
+        }else{
+            println!("{}",Red.paint(format!("{}","Invalid len")).to_string())
         }
     }
 }
-
-/*fn random_secret()-> Vec<Color>{
-    let mut rng = thread_rng();
-    let mut y = [Color::Red, Color::Green, Color::White, Color::Orange];
-    y.
-}*/
 
 fn number_of_not_well_placed_pawns(secret: &[Color], guess: &[Color]) -> i32{
    return guess.len() as i32-number_of_well_placed_pawns(secret,guess);
@@ -93,7 +101,6 @@ fn str_to_vec_colors(guess:String) ->Vec<Color>{
     println!("{}",guess);
     let mut colors:Vec<Color>=Vec::new();
     for  c in guess.trim().chars() {
-        println!("{}",c);
         colors.push(match c {
             'R'=>Color::Red,
             'O'=>Color::Orange ,
@@ -104,8 +111,8 @@ fn str_to_vec_colors(guess:String) ->Vec<Color>{
             'P'=>Color::Purple,
             'I'=>Color::Indigo,
             _ => {
-                println!("{}",Red.paint(format!("{} {}",c,"not exist in enum Color")).to_string());
                 Color::NoColor;
+                println!("{}",Red.paint(format!("{} {}",c,"not exist in enum Color")).to_string());
                 break;
             }
         });
@@ -129,15 +136,15 @@ fn found_suit( colors:Vec<Color>,secret:&Vec<Color>)->bool{
     }
 }
 
-fn invalid_format(guess:&[Color]) ->bool{
-    println!("{:?}",fancy_print(&guess));
-    if guess.iter().any(|i| *i==Color::NoColor){
+fn invalid_len(secret:&[Color],guess:&[Color]) ->bool{
+    if  guess.len()!=secret.len(){
         return true
     }
+
     return false
 }
 
-fn fancy_print(guess:&[Color]) -> String {
+fn fancy_print_guess(guess:&[Color]) -> String {
     let mut str:String="".to_owned();
     for n in guess {
        str.push_str(match n {
@@ -149,7 +156,6 @@ fn fancy_print(guess:&[Color]) -> String {
            Color::Green=>"G",
            Color::Purple=>"P",
            Color::Indigo=>"I",
-           Color::Blue=>"B",
            _ => {
                println!("{}",Red.paint(format!("{} {}",n,"not exist in enum Color")).to_string());
                ""
